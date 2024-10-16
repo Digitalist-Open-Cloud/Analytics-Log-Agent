@@ -1,0 +1,20 @@
+# /opt/matomo-agent/config.toml
+[matomo]
+url = "https://your-matomo-domain/matomo.php"
+site_id = "1"
+token_auth = "your_matomo_token"
+
+[log]
+# Valid options: "nginx" or "apache"
+log_format = "nginx"
+# Log levels: "debug", "info", "warn", "error"
+log_level = "info"
+# Path to the log file for your agent logs
+log_file = "/var/log/matomo-agent.log"
+
+[nginx]
+log_path = "/var/log/nginx/access.log"
+
+[apache]
+log_path = "/var/log/apache2/access.log"
+
