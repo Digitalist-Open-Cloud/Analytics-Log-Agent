@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -53,6 +54,30 @@ func loadConfig(configPath string) (*Config, error) {
 	return &config, nil
 }
 
+func validateTokenAuth(config *Config) error {
+	validationURL := fmt.Sprintf("%sindex.php?module=API&method=API.getPiwikVersion&token_auth=%s&format=JSON", config.Matomo.URL, config.Matomo.TokenAuth)
+
+	resp, err := http.Get(validationURL)
+	if err != nil {
+		return fmt.Errorf("error validating token: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Check if the response was successful
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("invalid token_auth, received status: %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response: %v", err)
+	}
+
+	logger.Infof("Matomo version: %s", string(body))
+
+	return nil
+}
+
 // Set up logging levels
 func setupLogging(logLevel string, logFile string) {
 	level, err := logrus.ParseLevel(logLevel)
@@ -84,7 +109,7 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"token_auth": {config.Matomo.TokenAuth},
 	}
 
-	resp, err := http.Get(config.Matomo.URL + "?" + data.Encode())
+	resp, err := http.Get(config.Matomo.URL + "matomo.php?" + data.Encode())
 	if err != nil {
 		logger.Error("Error sending data to Matomo:", err)
 	} else {
@@ -168,6 +193,11 @@ func main() {
 
 	// Set up logging
 	setupLogging(config.Log.LogLevel, config.Log.LogFile)
+	// Check if we have a valid token for Matomo.
+	err = validateTokenAuth(config)
+	if err != nil {
+		logger.Fatal("Invalid Matomo token_auth:", err)
+	}
 
 	// Start tailing the log file
 	tailLogFile(config)
