@@ -106,6 +106,7 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"cip":        {logData.IP},
 		"ua":         {logData.UserAgent},
 		"url":        {Url},
+		"urlref":     {logData.Referrer},
 		"token_auth": {config.Matomo.TokenAuth},
 	}
 
