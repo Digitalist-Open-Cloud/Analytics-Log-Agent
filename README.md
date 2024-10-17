@@ -4,8 +4,6 @@ This is an agent for Matomo, running on the server you want to have Matomo data 
 
 The agent is in it's early stages, and at this point **NOT** recommended for production use.
 
-
-
 ## Log format
 
 The plan is to support different logging formats, that is why apache and nginx
@@ -31,6 +29,11 @@ the agent with the `--config` flag.
 ```sh
 ./matomo-agent --config config.toml
 ```
+
+## Todos
+
+- If activated config, send information about 404, 503 etc. to Matomo - using the Matomo plugin Agent as API endpoint. Only send ok responses to Matomo Tracking API.
+- If download, add metadata to Tracking API.
 
 ## @todo Releases
 
