@@ -27,8 +27,9 @@ type Config struct {
 		Plugin    bool   `mapstructure:"plugin"`
 	}
 	Log struct {
-		LogFormat string `mapstructure:"log_format"`
-		LogPath   string `mapstructure:"log_path"`
+		LogFormat  string   `mapstructure:"log_format"`
+		LogPath    string   `mapstructure:"log_path"`
+		UserAgents []string `mapstructure:"user_agents"`
 	}
 	Agent struct {
 		LogLevel string `mapstructure:"log_level"`
@@ -120,11 +121,25 @@ func InitializeAgentURL(config *Config) {
 	config.Matomo.AgentURL = config.Matomo.URL + "index.php?module=API&method=Agent.postLogData"
 }
 
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if strings.Contains(item, s) {
+			return true
+		}
+	}
+	return false
+}
+
 // Matomo Tracking API call
 func sendToMatomo(logData *LogData, config *Config) {
 	var Url = config.Matomo.WebSite + logData.URL
 	var targetURL string
 	InitializeAgentURL(config)
+
+	if len(config.Log.UserAgents) > 0 && !contains(config.Log.UserAgents, logData.UserAgent) {
+		logger.Debugf("User agent '%s' not tracked. Skipping log.", logData.UserAgent)
+		return
+	}
 
 	data := url.Values{
 		"idsite":      {config.Matomo.SiteID},
@@ -153,7 +168,7 @@ func sendToMatomo(logData *LogData, config *Config) {
 				logger.Error("Error sending data to Matomo:", err)
 				return
 			} else {
-				logger.Infof("Error log sent for %s: %s, Status: %s", config.Matomo.SiteID, logData.URL, resp.Status)
+				logger.Debugf("Error log sent for site %s: %s, Status: %s", config.Matomo.SiteID, logData.URL, resp.Status)
 			}
 			defer resp.Body.Close()
 		}
@@ -170,7 +185,7 @@ func sendToMatomo(logData *LogData, config *Config) {
 		logger.Error("Error sending data to Matomo:", err)
 		return
 	} else {
-		logger.Infof("Log sent: %s, Status: %s", logData.URL, resp.Status)
+		logger.Debugf("Log sent for site %s: %s, Status: %s", config.Matomo.SiteID, logData.URL, resp.Status)
 	}
 	defer resp.Body.Close()
 

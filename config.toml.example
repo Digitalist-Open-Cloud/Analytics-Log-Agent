@@ -10,7 +10,13 @@ plugin = false
 # Valid options: "nginx" or "apache"
 log_format = "nginx"
 log_path = "/var/log/nginx/access.log"
-user_agents = ["Mozilla/5.0", "Googlebot", "Bingbot", "YourUserAgent"]
+# Only track these User agents. If user_agents no value, all user agents will be tracked.
+# user_agents = [
+#    "Mozilla/5.0",
+#    "Googlebot",
+#    "MyUserAgent",
+# ]
+user_agents = []
 
 [agent]
 # Log levels: "debug", "info", "warn", "error"

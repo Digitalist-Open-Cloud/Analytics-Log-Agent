@@ -28,6 +28,7 @@ Options for `config.toml`:
 | `matomo.plugin`     | If you want to use the Agent plugin in Matomo | false   | No       |
 | `log.log_format`    | Which log format the log has                  | -       | Yes      |
 | `log.log_path`      | Path to the log to tail                       | -       | Yes      |
+| `log.user_agents`   | Array of User Agents that should be tracked   | -       | No      |
 | `agent.log_level`   | Log level for Matomo agent                    | -       | Yes      |
 | `agent.log_file`    | File to log to                                | -       | Yes      |
 
