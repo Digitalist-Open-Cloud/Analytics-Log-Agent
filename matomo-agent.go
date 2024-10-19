@@ -20,21 +20,19 @@ import (
 type Config struct {
 	Matomo struct {
 		URL       string `mapstructure:"url"`
-		ErrorURL  string
+		AgentURL  string
 		SiteID    string `mapstructure:"site_id"`
 		WebSite   string `mapstructure:"website_url"`
 		TokenAuth string `mapstructure:"token_auth"`
+		Plugin    bool   `mapstructure:"plugin"`
 	}
 	Log struct {
 		LogFormat string `mapstructure:"log_format"`
-		LogLevel  string `mapstructure:"log_level"`
-		LogFile   string `mapstructure:"log_file"`
+		LogPath   string `mapstructure:"log_path"`
 	}
-	Nginx struct {
-		LogPath string `mapstructure:"log_path"`
-	}
-	Apache struct {
-		LogPath string `mapstructure:"log_path"`
+	Agent struct {
+		LogLevel string `mapstructure:"log_level"`
+		LogFile  string `mapstructure:"log_file"`
 	}
 }
 
@@ -113,22 +111,20 @@ func setupLogging(logLevel string, logFile string) {
 	}
 }
 
-// InitializeErrorURL constructs the ErrorURL by combining the base URL with the additional query string.
-func InitializeErrorURL(config *Config) {
-	// Ensure the base URL ends with a '/' to safely concatenate the query string
+func InitializeAgentURL(config *Config) {
+	// Ensure the Matomo URL ends with a '/', if not, add it.
 	if !strings.HasSuffix(config.Matomo.URL, "/") {
 		config.Matomo.URL += "/"
 	}
 
-	// Set the ErrorURL by appending the specific endpoint to the base URL
-	config.Matomo.ErrorURL = config.Matomo.URL + "index.php?module=API&method=Agent.postLogData"
+	config.Matomo.AgentURL = config.Matomo.URL + "index.php?module=API&method=Agent.postLogData"
 }
 
 // Matomo Tracking API call
 func sendToMatomo(logData *LogData, config *Config) {
 	var Url = config.Matomo.WebSite + logData.URL
 	var targetURL string
-	InitializeErrorURL(config)
+	InitializeAgentURL(config)
 
 	data := url.Values{
 		"idsite":      {config.Matomo.SiteID},
@@ -141,7 +137,6 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"status_code": {logData.Status},
 	}
 
-	// Common HTTP error statuses you want to handle
 	errorStatuses := map[string]bool{
 		"404": true,
 		"403": true,
@@ -149,32 +144,39 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"500": true,
 	}
 
-	// If the status is an error, use the error tracking API endpoint; otherwise, use the regular one
-	if errorStatuses[logData.Status] {
-		targetURL = config.Matomo.ErrorURL // Define this URL for errors in your config
-		resp, err := http.PostForm(targetURL, data)
-		if err != nil {
-			logger.Error("Error sending data to Matomo:", err)
-			return
-		} else {
-			logger.Infof("Error log sent for %s: %s, Status: %s", config.Matomo.SiteID, logData.URL, resp.Status)
+	// Code that is only executed if you have set plugin = true in config.
+	if config.Matomo.Plugin {
+		if errorStatuses[logData.Status] {
+			targetURL = config.Matomo.AgentURL
+			resp, err := http.PostForm(targetURL, data)
+			if err != nil {
+				logger.Error("Error sending data to Matomo:", err)
+				return
+			} else {
+				logger.Infof("Error log sent for %s: %s, Status: %s", config.Matomo.SiteID, logData.URL, resp.Status)
+			}
+			defer resp.Body.Close()
 		}
-		defer resp.Body.Close()
-	} else {
-		targetURL = config.Matomo.URL
-		resp, err := http.PostForm(targetURL+"matomo.php", data)
-		if err != nil {
-			logger.Error("Error sending data to Matomo:", err)
-			return
-		} else {
-			logger.Infof("Log sent: %s, Status: %s", logData.URL, resp.Status)
-		}
-		defer resp.Body.Close()
 	}
+	// Ensure the Matomo URL ends with a '/', if not, add it.
+	if !strings.HasSuffix(config.Matomo.URL, "/") {
+		config.Matomo.URL += "/"
+	}
+	targetURL = config.Matomo.URL
+
+	// Post to Tracker API.
+	resp, err := http.PostForm(targetURL+"matomo.php", data)
+	if err != nil {
+		logger.Error("Error sending data to Matomo:", err)
+		return
+	} else {
+		logger.Infof("Log sent: %s, Status: %s", logData.URL, resp.Status)
+	}
+	defer resp.Body.Close()
 
 }
 
-// Define a struct to hold the parsed log data
+// Struct of log data.
 type LogData struct {
 	IP        string
 	Timestamp string
@@ -187,7 +189,7 @@ type LogData struct {
 	UserAgent string
 }
 
-// Parse log line for Nginx or Apache
+// Parse log line for Nginx or Apache - for now these are the same.
 func parseLog(line, logFormat string) *LogData {
 	var logPattern *regexp.Regexp
 	if logFormat == "nginx" {
@@ -220,9 +222,9 @@ func parseLog(line, logFormat string) *LogData {
 func tailLogFile(config *Config) {
 	var logFilePath string
 	if config.Log.LogFormat == "nginx" {
-		logFilePath = config.Nginx.LogPath
+		logFilePath = config.Log.LogPath
 	} else if config.Log.LogFormat == "apache" {
-		logFilePath = config.Apache.LogPath
+		logFilePath = config.Log.LogPath
 	} else {
 		logger.Fatal("Invalid log format in config")
 	}
@@ -249,13 +251,13 @@ func main() {
 	}
 
 	// Set up logging
-	setupLogging(config.Log.LogLevel, config.Log.LogFile)
+	setupLogging(config.Agent.LogLevel, config.Agent.LogFile)
 	// Check if we have a valid token for Matomo.
 	err = validateTokenAuth(config)
 	if err != nil {
 		logger.Fatal("Invalid Matomo token_auth:", err)
 	}
 
-	// Start tailing the log file
+	// All set, start tailing the log file
 	tailLogFile(config)
 }
