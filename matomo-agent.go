@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -40,7 +41,7 @@ type Config struct {
 // Global logger instance
 var logger = logrus.New()
 
-// Load configuration from /opt/matomo-agent/config.toml
+// Load configuration
 func loadConfig(configPath string) (*Config, error) {
 	viper.SetConfigFile(configPath)
 
@@ -60,7 +61,7 @@ func validateTokenAuth(config *Config) error {
 
 	data := url.Values{
 		"module":     {"API"},
-		"method":     {"API.getPiwikVersion"},
+		"method":     {"API.getMatomoVersion"},
 		"format":     {"JSON"},
 		"token_auth": {config.Matomo.TokenAuth},
 	}
@@ -82,7 +83,19 @@ func validateTokenAuth(config *Config) error {
 		return fmt.Errorf("error reading response: %v", err)
 	}
 
-	logger.Infof("Matomo version: %s", string(body))
+	// Define a struct to unmarshal the JSON response
+	type VersionResponse struct {
+		Value string `json:"value"`
+	}
+
+	var versionResp VersionResponse
+	err = json.Unmarshal(body, &versionResp)
+	if err != nil {
+		return fmt.Errorf("error parsing JSON: %v", err)
+	}
+
+	// Log the extracted version
+	logger.Infof("Auth token ok, Matomo version is %s", versionResp.Value)
 
 	return nil
 }
@@ -270,9 +283,10 @@ func main() {
 	// Check if we have a valid token for Matomo.
 	err = validateTokenAuth(config)
 	if err != nil {
-		logger.Fatal("Invalid Matomo token_auth:", err)
+		logger.Fatal("Invalid Matomo token:", err)
 	}
 
 	// All set, start tailing the log file
+	logger.Infof("Start tailing the log")
 	tailLogFile(config)
 }
