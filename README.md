@@ -4,6 +4,8 @@ This is an agent for Matomo, running on the server you want to have Matomo data 
 
 The agent is in it's early stages, and at this point **NOT** recommended for production use.
 
+## Usage
+
 The idea of the usages of this agent are:
 
 - If you can't use normal JavaScript tracking for you website, you instead use the logs and tail them and send the data to Matomo. (If you want to send server logs by daily batches, you instead use [Log Analytics](https://matomo.org/log-analytics/)).
@@ -44,7 +46,7 @@ go build -o matomo-agent .
 
 ## Install
 
-Copy config.toml.example to default, /opt/matomo-agent/config.toml
+Copy config.toml.example to default (are you preferred destination), /opt/matomo-agent/config.toml
 Add settings for the agent in config.toml, run matomo-agent.
 
 ```sh
@@ -64,3 +66,19 @@ the agent with the `--config` flag.
 - If download, add metadata to Tracking API.
 - To configure to track bots only, this could be used: <https://github.com/robicode/device-detector/tree/main>
 - Add releases <https://github.com/goreleaser/goreleaser>
+
+## Linting
+
+```sh
+golangci-lint run
+```
+
+## License
+
+Copyright (C) 2024 Digitalist Open Cloud <cloud@digitalist.com>
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>
