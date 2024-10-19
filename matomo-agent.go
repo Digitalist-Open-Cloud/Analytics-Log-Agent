@@ -9,15 +9,18 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/tenebris-tech/tail"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type Config struct {
 	Matomo struct {
 		URL       string `mapstructure:"url"`
+		ErrorURL  string
 		SiteID    string `mapstructure:"site_id"`
 		WebSite   string `mapstructure:"website_url"`
 		TokenAuth string `mapstructure:"token_auth"`
@@ -55,9 +58,16 @@ func loadConfig(configPath string) (*Config, error) {
 }
 
 func validateTokenAuth(config *Config) error {
-	validationURL := fmt.Sprintf("%sindex.php?module=API&method=API.getPiwikVersion&token_auth=%s&format=JSON", config.Matomo.URL, config.Matomo.TokenAuth)
 
-	resp, err := http.Get(validationURL)
+	data := url.Values{
+		"module":     {"API"},
+		"method":     {"API.getPiwikVersion"},
+		"format":     {"JSON"},
+		"token_auth": {config.Matomo.TokenAuth},
+	}
+	validationURL := fmt.Sprintf("%sindex.php", config.Matomo.URL)
+
+	resp, err := http.PostForm(validationURL, data)
 	if err != nil {
 		return fmt.Errorf("error validating token: %v", err)
 	}
@@ -88,34 +98,80 @@ func setupLogging(logLevel string, logFile string) {
 
 	// Output logs to a file
 	if logFile != "" {
-		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err == nil {
-			logger.SetOutput(file)
-		} else {
-			logger.Warn("Failed to log to file, using default stderr")
-		}
+		logger.SetOutput(&lumberjack.Logger{
+			Filename:   logFile, // Log file path
+			MaxSize:    10,      // Max size in megabytes before log rotation
+			MaxBackups: 3,       // Max number of old log files to keep
+			MaxAge:     28,      // Max number of days to retain old log files
+			Compress:   true,    // Whether to compress old log files
+		})
+
+	} else {
+		// Fallback to stderr if no log file is provided
+		logger.Warn("No log file provided, using default stderr")
+		logger.SetOutput(os.Stderr)
 	}
+}
+
+// InitializeErrorURL constructs the ErrorURL by combining the base URL with the additional query string.
+func InitializeErrorURL(config *Config) {
+	// Ensure the base URL ends with a '/' to safely concatenate the query string
+	if !strings.HasSuffix(config.Matomo.URL, "/") {
+		config.Matomo.URL += "/"
+	}
+
+	// Set the ErrorURL by appending the specific endpoint to the base URL
+	config.Matomo.ErrorURL = config.Matomo.URL + "index.php?module=API&method=Agent.postLogData"
 }
 
 // Matomo Tracking API call
 func sendToMatomo(logData *LogData, config *Config) {
 	var Url = config.Matomo.WebSite + logData.URL
+	var targetURL string
+	InitializeErrorURL(config)
+
 	data := url.Values{
-		"idsite":     {config.Matomo.SiteID},
-		"rec":        {"1"},
-		"cip":        {logData.IP},
-		"ua":         {logData.UserAgent},
-		"url":        {Url},
-		"urlref":     {logData.Referrer},
-		"token_auth": {config.Matomo.TokenAuth},
+		"idsite":      {config.Matomo.SiteID},
+		"rec":         {"1"},
+		"cip":         {logData.IP},
+		"ua":          {logData.UserAgent},
+		"url":         {Url},
+		"urlref":      {logData.Referrer},
+		"token_auth":  {config.Matomo.TokenAuth},
+		"status_code": {logData.Status},
 	}
 
-	resp, err := http.Get(config.Matomo.URL + "matomo.php?" + data.Encode())
-	if err != nil {
-		logger.Error("Error sending data to Matomo:", err)
-	} else {
-		logger.Infof("Log sent: %s, Status: %s", logData.URL, resp.Status)
+	// Common HTTP error statuses you want to handle
+	errorStatuses := map[string]bool{
+		"404": true,
+		"403": true,
+		"503": true,
+		"500": true,
 	}
+
+	// If the status is an error, use the error tracking API endpoint; otherwise, use the regular one
+	if errorStatuses[logData.Status] {
+		targetURL = config.Matomo.ErrorURL // Define this URL for errors in your config
+		resp, err := http.PostForm(targetURL, data)
+		if err != nil {
+			logger.Error("Error sending data to Matomo:", err)
+			return
+		} else {
+			logger.Infof("Error log sent for %s: %s, Status: %s", config.Matomo.SiteID, logData.URL, resp.Status)
+		}
+		defer resp.Body.Close()
+	} else {
+		targetURL = config.Matomo.URL
+		resp, err := http.PostForm(targetURL+"matomo.php", data)
+		if err != nil {
+			logger.Error("Error sending data to Matomo:", err)
+			return
+		} else {
+			logger.Infof("Log sent: %s, Status: %s", logData.URL, resp.Status)
+		}
+		defer resp.Body.Close()
+	}
+
 }
 
 // Define a struct to hold the parsed log data
