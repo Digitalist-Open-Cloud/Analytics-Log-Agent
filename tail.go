@@ -26,23 +26,34 @@ import (
 // Tail the log file based on configuration and send to Matomo
 func tailLogFile(config *Config) {
 	var logFilePath string
-	if config.Log.LogFormat == "nginx" {
-		logFilePath = config.Log.LogPath
-	} else if config.Log.LogFormat == "apache" {
+	if config.Log.LogFormat == "nginx" || config.Log.LogFormat == "apache" || config.Log.LogFormat == "csv" {
 		logFilePath = config.Log.LogPath
 	} else {
 		logger.Fatal("Invalid log format in config")
 	}
 
+	// Open the log file for tailing
 	t, err := tail.TailFile(logFilePath, tail.Config{Follow: true})
 	if err != nil {
 		logger.Fatal("Failed to open log file:", err)
 	}
 
+	// Process each line from the log file
 	for line := range t.Lines {
+		// Parse the log line
 		logData := parseLog(line.Text, config.Log.LogFormat)
-		if logData != nil {
-			sendToMatomo(logData, config)
+		if logData == nil {
+			logger.Warnf("Failed to parse log line: %s", line.Text)
+			continue
 		}
+
+		// Check if the request URL contains an ignored media file extension (without query params)
+		if isIgnored(logData.URL) {
+			logger.Debugf("Skipping media file request: %s", logData.URL)
+			continue
+		}
+
+		// Send parsed log to Matomo
+		sendToMatomo(logData, config)
 	}
 }

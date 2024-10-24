@@ -33,6 +33,7 @@ type Config struct {
 		WebSite   string `mapstructure:"website_url"`
 		TokenAuth string `mapstructure:"token_auth"`
 		Plugin    bool   `mapstructure:"plugin"`
+		Downloads bool   `mapstructure:"downloads"`
 	}
 	Log struct {
 		LogFormat  string   `mapstructure:"log_format"`
