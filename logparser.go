@@ -53,7 +53,7 @@ func parseLog(line, logFormat string) *LogData {
 	} else if logFormat == "csv" {
 		// CSV log format: timestamp, req_method, final_host, req_uri, resp_status, client_ip, req_referer, req_user_agent
 
-		// Example: 2024-09-10 18:13:19 UTC,GET,example.org,/news/2024/09/09/south-sudan-parliament-approves-transitional-justice-laws,200,2.86.73.63,https://text.hrw.org/,Mozilla/5.0...
+		// Example: 2024-09-10 18:13:19 UTC,GET,example.org,/news/2024/09/09/south-sudan-parliament-approves-transitional-justice-laws,200,2.86.73.63,https://my.url/,Mozilla/5.0...
 		reader := csv.NewReader(strings.NewReader(line))
 		reader.TrimLeadingSpace = true // In case there are extra spaces
 
