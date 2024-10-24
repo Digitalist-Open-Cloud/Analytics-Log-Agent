@@ -1,6 +1,8 @@
 # Matomo Agent
 
-This is an agent for Matomo, running on the server you want to have Matomo data from, to send to your Matomo instance, like 404 logs (this needs the Matomo plugin `Agent` installed and activated in you Matomo instance), but the but the plugin is not needed, it just provides extra information in your Matomo instance.
+This is an agent for Matomo, running on the server you want to have Matomo data from, to send to your Matomo instance.
+
+There is also an integration for the Matomo plugin `Agent` that could be used for cases when you want to have reports for errors, like 404 logs.
 
 The agent is in it's early stages, and at this point **NOT** recommended for production use.
 
