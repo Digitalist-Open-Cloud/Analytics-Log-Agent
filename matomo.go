@@ -91,7 +91,13 @@ func contains(slice []string, item string) bool {
 
 // Matomo Tracking API call
 func sendToMatomo(logData *LogData, config *Config) {
-	var Url = config.Matomo.WebSite + logData.URL
+
+	var Url string
+	if len(logData.Host) > 0 {
+		Url = logData.Host + logData.URL
+	} else {
+		Url = config.Matomo.WebSite + logData.URL
+	}
 	var targetURL string
 	InitializeAgentURL(config)
 
@@ -100,15 +106,39 @@ func sendToMatomo(logData *LogData, config *Config) {
 		return
 	}
 
+	// Check if the request URL contains an ignored media file extension
+	if isIgnored(logData.URL) {
+		logger.Debugf("Skipping media file request: %s", logData.URL)
+		return
+	}
+
+	var isDownload bool
+	if config.Matomo.Downloads && isDownloadableFile(logData.URL) {
+		isDownload = true
+		logger.Debugf("Downloadable file detected: %s", logData.URL)
+	}
+
+	formattedTime, err := formatTimestamp(logData.Timestamp)
+	if err != nil {
+		logger.Warnf("Failed to format timestamp: %v", err)
+		return
+	}
+
 	data := url.Values{
 		"idsite":      {config.Matomo.SiteID},
 		"rec":         {"1"},
+		"send_image":  {"0"},
 		"cip":         {logData.IP},
 		"ua":          {logData.UserAgent},
 		"url":         {Url},
 		"urlref":      {logData.Referrer},
 		"token_auth":  {config.Matomo.TokenAuth},
 		"status_code": {logData.Status},
+		"cdt":         {formattedTime},
+	}
+
+	if isDownload {
+		data.Set("download", Url)
 	}
 
 	errorStatuses := map[string]bool{
@@ -158,7 +188,13 @@ func sendToMatomo(logData *LogData, config *Config) {
 				logger.Error("Error sending data to Matomo:", err)
 				return
 			} else {
-				logger.Debugf("Error log sent for site %s: %s, Status: %s", config.Matomo.SiteID, logData.URL, resp.Status)
+				var Site string
+				if len(logData.Host) > 0 {
+					Site = logData.Host
+				} else {
+					Site = config.Matomo.WebSite
+				}
+				logger.Debugf("Error log sent for host %s site %s: %s, Status: %s", Site, config.Matomo.SiteID, logData.URL, resp.Status)
 			}
 			defer resp.Body.Close()
 		}
@@ -175,7 +211,14 @@ func sendToMatomo(logData *LogData, config *Config) {
 		logger.Error("Error sending data to Matomo:", err)
 		return
 	} else {
-		logger.Debugf("Log sent for site %s: %s, Status: %s", config.Matomo.SiteID, logData.URL, resp.Status)
+		var Site string
+		if len(logData.Host) > 0 {
+			Site = logData.Host
+		} else {
+			Site = config.Matomo.WebSite
+		}
+		logger.Debugf("Log sent host %s and site %s: %s, Status: %s", Site, config.Matomo.SiteID, logData.URL, resp.Status)
+
 	}
 	defer resp.Body.Close()
 

@@ -3,8 +3,10 @@
 url = ""
 site_id = "1"
 token_auth = ""
-# If you are using the agent plugin for matomo
+# If you are using the agent plugin for Matomo
 plugin = false
+# If you want to track downloads
+downloads = true
 
 [log]
 # Valid options: "nginx" or "apache"
