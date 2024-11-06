@@ -85,6 +85,8 @@ func main() {
 	userAgents := flag.String("user-agents", "", "Comma-separated list of user agents to track (Overrides config file)")
 	agentLogLevel := flag.String("log-level", "", "Log level (debug, info, warn, error) (Overrides config file)")
 	agentLogFile := flag.String("log-file", "", "Path to the agent's log file (Overrides config file)")
+	isTitleEnabled := flag.Bool("collect-title", false, "Enable collection of page titles based on URL")
+	titleDomain := flag.String("title-domain", "", "Override default domain to fetch title from")
 
 	// Parse the flags first
 	flag.Parse()
@@ -123,6 +125,14 @@ func main() {
 	}
 	if *agentLogFile != "" {
 		config.Agent.LogFile = *agentLogFile
+	}
+
+	if *isTitleEnabled {
+		config.Title.Collect = *isTitleEnabled
+	}
+
+	if *titleDomain != "" {
+		config.Title.Domain = *titleDomain
 	}
 
 	// Override config with flag values

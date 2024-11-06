@@ -19,9 +19,20 @@ log_path = "/var/log/nginx/access.log"
 #    "MyUserAgent",
 # ]
 user_agents = []
+# Exclude URL patterns
+# excluded_urls = [
+#  "example.com",
+#  "bad-url",
+#  "unwanted-path"
+# ]
+excluded_urls = []
 
 [agent]
 # Log levels: "debug", "info", "warn", "error"
 log_level = "info"
 # Path to the log file for your agent logs
 log_file = "/var/log/matomo-agent.log"
+
+[title]
+collect_titles = false
+title_domain = ""

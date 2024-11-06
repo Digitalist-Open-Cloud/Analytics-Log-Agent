@@ -113,16 +113,55 @@ func sendToMatomo(logData *LogData, config *Config) {
 		return
 	}
 
+	if !shouldSendURL(logData.URL, config.Log.ExcludedURLs) {
+		logger.Debugf("URL %s is excluded, not sending to Matomo.", logData.URL)
+		return
+	}
+
 	var isDownload bool
 	if config.Matomo.Downloads && isDownloadableFile(logData.URL) {
 		isDownload = true
 		logger.Debugf("Downloadable file detected: %s", logData.URL)
 	}
 
+	var isTitleEnabled bool
+	if config.Title.Collect {
+		isTitleEnabled = true
+		logger.Debugf("Collect title tags from HTML")
+	}
+
+	var titleDomain string
+	if len(config.Title.Domain) > 0 {
+		titleDomain = config.Title.Domain
+		logger.Debugf("Using %s as domain to get title from HTML", titleDomain)
+	}
+
 	formattedTime, err := formatTimestamp(logData.Timestamp)
 	if err != nil {
 		logger.Warnf("Failed to format timestamp: %v", err)
 		return
+	}
+	var pageTitle string
+	if isTitleEnabled {
+		err := loadCache(titleCacheFile)
+		if err != nil {
+			logger.Warnf("Failed to load title cache: %v", err)
+		}
+		domain := titleDomain
+		if domain == "" && logData.Host != "" {
+			domain = logData.Host
+		}
+
+		// Build full URL with domain
+		fullURL := logData.URL
+
+		// Load title cache and check for existing title
+		pageTitle, err := collectTitle(fullURL, "url_title_cache.txt")
+		if err != nil {
+			logger.Warnf("Failed to fetch title for %s: %v", fullURL, err)
+		} else {
+			logger.Debugf("Fetched title for %s: %s", fullURL, pageTitle)
+		}
 	}
 
 	data := url.Values{
@@ -136,6 +175,11 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"token_auth":  {config.Matomo.TokenAuth},
 		"status_code": {logData.Status},
 		"cdt":         {formattedTime},
+	}
+
+	if pageTitle != "" {
+		data.Set("action_name", pageTitle)
+		logger.Debugf("Page title is: %s", pageTitle)
 	}
 
 	if isDownload {
