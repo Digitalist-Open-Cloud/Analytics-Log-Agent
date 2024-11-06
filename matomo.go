@@ -92,12 +92,13 @@ func contains(slice []string, item string) bool {
 // Matomo Tracking API call
 func sendToMatomo(logData *LogData, config *Config) {
 
-	var Url string
 	if len(logData.Host) > 0 {
-		Url = logData.Host + logData.URL
+		logData.URL = "https://" + logData.Host + logData.URL
 	} else {
-		Url = config.Matomo.WebSite + logData.URL
+		logData.URL = config.Matomo.WebSite + logData.URL
 	}
+	//logData.URL = config.Matomo.WebSite + logData.URL
+
 	var targetURL string
 	InitializeAgentURL(config)
 
@@ -130,7 +131,7 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"send_image":  {"0"},
 		"cip":         {logData.IP},
 		"ua":          {logData.UserAgent},
-		"url":         {Url},
+		"url":         {logData.URL},
 		"urlref":      {logData.Referrer},
 		"token_auth":  {config.Matomo.TokenAuth},
 		"status_code": {logData.Status},
@@ -138,7 +139,7 @@ func sendToMatomo(logData *LogData, config *Config) {
 	}
 
 	if isDownload {
-		data.Set("download", Url)
+		data.Set("download", logData.URL)
 	}
 
 	errorStatuses := map[string]bool{

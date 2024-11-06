@@ -85,7 +85,7 @@ go build -o matomo-agent .
 
 ## Install
 
-Copy config.toml.example to default (are you preferred destination), /opt/matomo-agent/config.toml
+Copy config.toml.example to default (or your preferred destination), /opt/matomo-agent/config.toml
 Add settings for the agent in config.toml, run matomo-agent.
 
 ```sh
@@ -96,7 +96,7 @@ Add settings for the agent in config.toml, run matomo-agent.
 the agent with the `--config` flag.
 
 ```sh
-./matomo-agent --config config.toml
+./matomo-agent --config /PATH/TO/YOUR/config.toml
 ```
 
 ## Tail or cat
