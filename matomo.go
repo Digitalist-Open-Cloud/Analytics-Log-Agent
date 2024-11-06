@@ -156,11 +156,12 @@ func sendToMatomo(logData *LogData, config *Config) {
 		fullURL := logData.URL
 
 		// Load title cache and check for existing title
-		pageTitle, err := collectTitle(fullURL, "url_title_cache.txt")
+		pageTitle, err = collectTitle(fullURL, "url_title_cache.txt")
 		if err != nil {
 			logger.Warnf("Failed to fetch title for %s: %v", fullURL, err)
 		} else {
 			logger.Debugf("Fetched title for %s: %s", fullURL, pageTitle)
+			logger.Debugf("Title is: %s", pageTitle)
 		}
 	}
 
@@ -177,9 +178,11 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"cdt":         {formattedTime},
 	}
 
-	if pageTitle != "" {
+	if len(pageTitle) > 0 {
 		data.Set("action_name", pageTitle)
 		logger.Debugf("Page title is: %s", pageTitle)
+	} else {
+		logger.Warnf("No page title found for URL: %s", logData.URL)
 	}
 
 	if isDownload {
