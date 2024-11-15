@@ -1,5 +1,5 @@
 /**
- * An agent for Matomo.
+ * A log agent for Matomo.
  *
  * Copyright (C) 2024 Digitalist Open Cloud <cloud@digitalist.com>
  *
@@ -92,12 +92,13 @@ func contains(slice []string, item string) bool {
 // Matomo Tracking API call
 func sendToMatomo(logData *LogData, config *Config) {
 
-	var Url string
 	if len(logData.Host) > 0 {
-		Url = logData.Host + logData.URL
+		logData.URL = "https://" + logData.Host + logData.URL
 	} else {
-		Url = config.Matomo.WebSite + logData.URL
+		logData.URL = config.Matomo.WebSite + logData.URL
 	}
+	//logData.URL = config.Matomo.WebSite + logData.URL
+
 	var targetURL string
 	InitializeAgentURL(config)
 
@@ -112,16 +113,58 @@ func sendToMatomo(logData *LogData, config *Config) {
 		return
 	}
 
+	if !shouldSendURL(logData.URL, config.Log.ExcludedURLs) {
+		logger.Debugf("URL %s is excluded, not sending to Matomo.", logData.URL)
+		return
+	}
+
 	var isDownload bool
 	if config.Matomo.Downloads && isDownloadableFile(logData.URL) {
 		isDownload = true
 		logger.Debugf("Downloadable file detected: %s", logData.URL)
 	}
 
+	var isTitleEnabled bool
+	if config.Title.Collect {
+		isTitleEnabled = true
+		logger.Debugf("Collect title tags from HTML")
+	}
+
+	var titleDomain string
+	if len(config.Title.Domain) > 0 {
+		titleDomain = config.Title.Domain
+		logger.Debugf("Using %s as domain to get title from HTML", titleDomain)
+	}
+
 	formattedTime, err := formatTimestamp(logData.Timestamp)
 	if err != nil {
 		logger.Warnf("Failed to format timestamp: %v", err)
 		return
+	}
+	var pageTitle string
+	if isTitleEnabled {
+		cacheFilePath := getTitleCacheFilePath(config)
+		err := loadCache(cacheFilePath)
+		if err != nil {
+			logger.Warnf("Failed to load title cache: %v", err)
+		}
+		//  @todo: fix parameter for title domain.
+		//domain := titleDomain
+		// if domain == "" && logData.Host != "" {
+		// 	domain = logData.Host
+		// }
+
+		// Build full URL with domain
+		fullURL := logData.URL
+
+		// Load title cache and check for existing title
+		pageTitle, err = collectTitle(fullURL, cacheFilePath)
+		if err != nil {
+			logger.Warnf("Failed to fetch title for %s: %v", fullURL, err)
+		} else {
+			logger.Debugf("Fetched title for %s: %s", fullURL, pageTitle)
+			logger.Debugf("Title is: %s", pageTitle)
+		}
 	}
 
 	data := url.Values{
@@ -130,15 +173,24 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"send_image":  {"0"},
 		"cip":         {logData.IP},
 		"ua":          {logData.UserAgent},
-		"url":         {Url},
+		"url":         {logData.URL},
 		"urlref":      {logData.Referrer},
 		"token_auth":  {config.Matomo.TokenAuth},
 		"status_code": {logData.Status},
 		"cdt":         {formattedTime},
 	}
 
+	if !isDownload {
+		if len(pageTitle) > 0 {
+			data.Set("action_name", pageTitle)
+			logger.Debugf("Page title is: %s", pageTitle)
+		} else {
+			logger.Warnf("No page title found for URL: %s", logData.URL)
+		}
+	}
+
 	if isDownload {
-		data.Set("download", Url)
+		data.Set("download", logData.URL)
 	}
 
 	errorStatuses := map[string]bool{
@@ -200,10 +252,10 @@ func sendToMatomo(logData *LogData, config *Config) {
 		}
 	}
 	// Ensure the Matomo URL ends with a '/', if not, add it.
-	if !strings.HasSuffix(config.Matomo.URL, "/") {
-		config.Matomo.URL += "/"
+	if !strings.HasSuffix(config.Matomo.TrackerURL, "/") {
+		config.Matomo.TrackerURL += "/"
 	}
-	targetURL = config.Matomo.URL
+	targetURL = config.Matomo.TrackerURL
 
 	// Post to Tracker API.
 	resp, err := http.PostForm(targetURL+"matomo.php", data)

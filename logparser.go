@@ -1,5 +1,5 @@
 /**
- * An agent for Matomo.
+ * A log agent for Matomo.
  *
  * Copyright (C) 2024 Digitalist Open Cloud <cloud@digitalist.com>
  *

@@ -1,5 +1,5 @@
 /**
- * An agent for Matomo.
+ * A log agent for Matomo.
  *
  * Copyright (C) 2024 Digitalist Open Cloud <cloud@digitalist.com>
  *
@@ -72,7 +72,7 @@ func catLogFile(config *Config, requestsPerSec int) error {
 
 func main() {
 	// Define flags
-	configPath := flag.String("config", "/opt/matomo-agent/config.toml", "Path to the configuration file")
+	configPath := flag.String("config", "/opt/log-agent/config.toml", "Path to the configuration file")
 	catLog := flag.Bool("catlog", false, "Simulate cat command for a log file")
 	reqPerSec := flag.Int("rps", 1, "Requests per second limit for catlog mode")
 	matomoURL := flag.String("matomo-url", "", "Matomo URL")
@@ -85,6 +85,8 @@ func main() {
 	userAgents := flag.String("user-agents", "", "Comma-separated list of user agents to track (Overrides config file)")
 	agentLogLevel := flag.String("log-level", "", "Log level (debug, info, warn, error) (Overrides config file)")
 	agentLogFile := flag.String("log-file", "", "Path to the agent's log file (Overrides config file)")
+	isTitleEnabled := flag.Bool("collect-title", false, "Enable collection of page titles based on URL")
+	titleDomain := flag.String("title-domain", "", "Override default domain to fetch title from")
 
 	// Parse the flags first
 	flag.Parse()
@@ -123,6 +125,14 @@ func main() {
 	}
 	if *agentLogFile != "" {
 		config.Agent.LogFile = *agentLogFile
+	}
+
+	if *isTitleEnabled {
+		config.Title.Collect = *isTitleEnabled
+	}
+
+	if *titleDomain != "" {
+		config.Title.Domain = *titleDomain
 	}
 
 	// Override config with flag values

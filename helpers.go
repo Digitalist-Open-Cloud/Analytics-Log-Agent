@@ -21,25 +21,12 @@ package main
 
 import "strings"
 
-// List of media file extensions you don't want to track
-var ignoredRequests = []string{
-	".jpeg", ".jpg", ".woff", ".woff2", ".ttf", ".gif", ".png", ".webp", ".svg", ".ico", ".js", ".css", ".bmp", ".svgz", ".otf", ".eot", ".xml",
-}
-
-// Helper function to check if a URL contains an ignored file extension
-func isIgnored(url string) bool {
-	// Split the URL at the '?' to remove query strings
-	urlWithoutQuery := strings.Split(url, "?")[0]
-
-	if strings.Contains(urlWithoutQuery, "robots.txt") || strings.Contains(strings.ToLower(urlWithoutQuery), "autodiscover") {
-		return true
-	}
-
-	// Check if the URL without query contains an ignored file extension
-	for _, ext := range ignoredRequests {
-		if strings.HasSuffix(strings.ToLower(urlWithoutQuery), ext) {
-			return true
+func shouldSendURL(url string, excludedURLs []string) bool {
+	for _, excluded := range excludedURLs {
+		if strings.Contains(url, excluded) {
+			logger.Debugf("Skipping URL %s, contains excluded substring: %s", url, excluded)
+			return false // Don't send the URL
 		}
 	}
-	return false
+	return true // Send the URL
 }

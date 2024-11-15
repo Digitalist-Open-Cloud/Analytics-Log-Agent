@@ -1,5 +1,5 @@
 /**
- * An agent for Matomo.
+ * A log agent for Matomo.
  *
  * Copyright (C) 2024 Digitalist Open Cloud <cloud@digitalist.com>
  *
@@ -27,22 +27,29 @@ import (
 
 type Config struct {
 	Matomo struct {
-		URL       string `mapstructure:"url"`
-		AgentURL  string
-		SiteID    string `mapstructure:"site_id"`
-		WebSite   string `mapstructure:"website_url"`
-		TokenAuth string `mapstructure:"token_auth"`
-		Plugin    bool   `mapstructure:"plugin"`
-		Downloads bool   `mapstructure:"downloads"`
+		URL        string `mapstructure:"url"`
+		TrackerURL string `mapstructure:"tracker_url"`
+		AgentURL   string
+		SiteID     string `mapstructure:"site_id"`
+		WebSite    string `mapstructure:"website_url"`
+		TokenAuth  string `mapstructure:"token_auth"`
+		Plugin     bool   `mapstructure:"plugin"`
+		Downloads  bool   `mapstructure:"downloads"`
 	}
 	Log struct {
-		LogFormat  string   `mapstructure:"log_format"`
-		LogPath    string   `mapstructure:"log_path"`
-		UserAgents []string `mapstructure:"user_agents"`
+		LogFormat    string   `mapstructure:"log_format"`
+		LogPath      string   `mapstructure:"log_path"`
+		UserAgents   []string `mapstructure:"user_agents"`
+		ExcludedURLs []string `mapstructure:"excluded_urls"`
 	}
 	Agent struct {
 		LogLevel string `mapstructure:"log_level"`
 		LogFile  string `mapstructure:"log_file"`
+	}
+	Title struct {
+		Collect bool   `mapstructure:"collect_titles"`
+		Domain  string `mapstructure:"title_domain"`
+		Cache   string `mapstructure:"cache_file"`
 	}
 }
 
