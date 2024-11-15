@@ -1,4 +1,4 @@
-# /opt/matomo-agent/config.toml
+# /opt/log-agent/config.toml
 [matomo]
 url = ""
 site_id = "1"
@@ -31,8 +31,9 @@ excluded_urls = []
 # Log levels: "debug", "info", "warn", "error"
 log_level = "info"
 # Path to the log file for your agent logs
-log_file = "/var/log/matomo-agent.log"
+log_file = "/var/log/log-agent.log"
 
 [title]
 collect_titles = false
 title_domain = ""
+cache_file = "/tmp/log-agent-cache-titles.txt"

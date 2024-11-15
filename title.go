@@ -1,5 +1,5 @@
 /**
- * An agent for Matomo.
+ * A log agent for Matomo.
  *
  * Copyright (C) 2024 Digitalist Open Cloud <cloud@digitalist.com>
  *
@@ -29,8 +29,12 @@ import (
 	"sync"
 )
 
-// Temp file for caching URL titles
-const titleCacheFile = "url_title_cache.txt"
+func getTitleCacheFilePath(config *Config) string {
+	if config.Title.Cache != "" {
+		return config.Title.Cache
+	}
+	return "/tmp/matomo_agent-url_title_cache.txt"
+}
 
 var titleCache = make(map[string]string)
 var cacheMutex = sync.Mutex{}
@@ -41,11 +45,10 @@ func loadCache(filePath string) error {
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		// Return error only if file exists but cannot be opened
 		if !os.IsNotExist(err) {
 			return err
 		}
-		return nil // No cache file found, continue without error
+		return nil
 	}
 	defer file.Close()
 
@@ -84,7 +87,7 @@ func saveCache(filePath, url, title string) error {
 	return err
 }
 
-func collectTitle(url, filePath string) (string, error) {
+func collectTitle(url, cacheFilePath string) (string, error) {
 	// Check in-memory cache first
 	cacheMutex.Lock()
 	if title, found := titleCache[url]; found {
@@ -100,7 +103,7 @@ func collectTitle(url, filePath string) (string, error) {
 	}
 
 	// Save to cache (both in-memory and file)
-	err = saveCache(filePath, url, title)
+	err = saveCache(cacheFilePath, url, title)
 	return title, err
 }
 

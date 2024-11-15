@@ -1,5 +1,5 @@
 /**
- * An agent for Matomo.
+ * A log agent for Matomo.
  *
  * Copyright (C) 2024 Digitalist Open Cloud <cloud@digitalist.com>
  *
@@ -72,7 +72,7 @@ func catLogFile(config *Config, requestsPerSec int) error {
 
 func main() {
 	// Define flags
-	configPath := flag.String("config", "/opt/matomo-agent/config.toml", "Path to the configuration file")
+	configPath := flag.String("config", "/opt/log-agent/config.toml", "Path to the configuration file")
 	catLog := flag.Bool("catlog", false, "Simulate cat command for a log file")
 	reqPerSec := flag.Int("rps", 1, "Requests per second limit for catlog mode")
 	matomoURL := flag.String("matomo-url", "", "Matomo URL")

@@ -1,4 +1,4 @@
-module github.com/Digitalist-Open-Cloud/matomo-agent
+module github.com/Digitalist-Open-Cloud/Analytics-Log-Agent
 
 go 1.22.4
 

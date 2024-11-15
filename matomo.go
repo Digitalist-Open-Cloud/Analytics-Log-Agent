@@ -1,5 +1,5 @@
 /**
- * An agent for Matomo.
+ * A log agent for Matomo.
  *
  * Copyright (C) 2024 Digitalist Open Cloud <cloud@digitalist.com>
  *
@@ -143,20 +143,22 @@ func sendToMatomo(logData *LogData, config *Config) {
 	}
 	var pageTitle string
 	if isTitleEnabled {
-		err := loadCache(titleCacheFile)
+		cacheFilePath := getTitleCacheFilePath(config)
+		err := loadCache(cacheFilePath)
 		if err != nil {
 			logger.Warnf("Failed to load title cache: %v", err)
 		}
-		domain := titleDomain
-		if domain == "" && logData.Host != "" {
-			domain = logData.Host
-		}
+		//  @todo: fix parameter for title domain.
+		//domain := titleDomain
+		// if domain == "" && logData.Host != "" {
+		// 	domain = logData.Host
+		// }
 
 		// Build full URL with domain
 		fullURL := logData.URL
 
 		// Load title cache and check for existing title
-		pageTitle, err = collectTitle(fullURL, "url_title_cache.txt")
+		pageTitle, err = collectTitle(fullURL, cacheFilePath)
 		if err != nil {
 			logger.Warnf("Failed to fetch title for %s: %v", fullURL, err)
 		} else {
@@ -178,11 +180,13 @@ func sendToMatomo(logData *LogData, config *Config) {
 		"cdt":         {formattedTime},
 	}
 
-	if len(pageTitle) > 0 {
-		data.Set("action_name", pageTitle)
-		logger.Debugf("Page title is: %s", pageTitle)
-	} else {
-		logger.Warnf("No page title found for URL: %s", logData.URL)
+	if !isDownload {
+		if len(pageTitle) > 0 {
+			data.Set("action_name", pageTitle)
+			logger.Debugf("Page title is: %s", pageTitle)
+		} else {
+			logger.Warnf("No page title found for URL: %s", logData.URL)
+		}
 	}
 
 	if isDownload {
@@ -248,10 +252,10 @@ func sendToMatomo(logData *LogData, config *Config) {
 		}
 	}
 	// Ensure the Matomo URL ends with a '/', if not, add it.
-	if !strings.HasSuffix(config.Matomo.URL, "/") {
-		config.Matomo.URL += "/"
+	if !strings.HasSuffix(config.Matomo.TrackerURL, "/") {
+		config.Matomo.TrackerURL += "/"
 	}
-	targetURL = config.Matomo.URL
+	targetURL = config.Matomo.TrackerURL
 
 	// Post to Tracker API.
 	resp, err := http.PostForm(targetURL+"matomo.php", data)
