@@ -185,7 +185,7 @@ func sendToMatomo(logData *LogData, config *Config) {
 			data.Set("action_name", pageTitle)
 			logger.Debugf("Page title is: %s", pageTitle)
 		} else {
-			logger.Warnf("No page title found for URL: %s", logData.URL)
+			logger.Debugf("No page title found for URL: %s", logData.URL)
 		}
 	}
 
@@ -257,21 +257,43 @@ func sendToMatomo(logData *LogData, config *Config) {
 	}
 	targetURL = config.Matomo.TrackerURL
 
-	// Post to Tracker API.
-	resp, err := http.PostForm(targetURL+"matomo.php", data)
-	if err != nil {
-		logger.Error("Error sending data to Matomo:", err)
-		return
-	} else {
-		var Site string
-		if len(logData.Host) > 0 {
-			Site = logData.Host
-		} else {
-			Site = config.Matomo.WebSite
-		}
-		logger.Debugf("Log sent host %s and site %s: %s, Status: %s", Site, config.Matomo.SiteID, logData.URL, resp.Status)
-
+	var batchMode bool
+	if config.Batch.Mode {
+		batchMode = true
+		logger.Debugf("Collect title tags from HTML")
 	}
-	defer resp.Body.Close()
+
+	if batchMode {
+
+		logData := url.Values{
+			"idsite":      {config.Matomo.SiteID},
+			"cip":         {logData.IP},
+			"ua":          {logData.UserAgent},
+			"url":         {logData.URL},
+			"urlref":      {logData.Referrer},
+			"status_code": {logData.Status},
+			"cdt":         {formattedTime},
+			"rec":         {"1"},
+		}
+
+		addLogToBatch(logData, config)
+	} else {
+		// Post to Tracker API.
+		resp, err := http.PostForm(targetURL+"matomo.php", data)
+		if err != nil {
+			logger.Error("Error sending data to Matomo:", err)
+			return
+		} else {
+			var Site string
+			if len(logData.Host) > 0 {
+				Site = logData.Host
+			} else {
+				Site = config.Matomo.WebSite
+			}
+			logger.Debugf("Log sent host %s and site %s: %s, Status: %s", Site, config.Matomo.SiteID, logData.URL, resp.Status)
+
+		}
+		defer resp.Body.Close()
+	}
 
 }

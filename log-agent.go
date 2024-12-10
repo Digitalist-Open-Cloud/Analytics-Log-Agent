@@ -72,6 +72,7 @@ func catLogFile(config *Config, requestsPerSec int) error {
 
 func main() {
 	// Define flags
+
 	configPath := flag.String("config", "/opt/log-agent/config.toml", "Path to the configuration file")
 	catLog := flag.Bool("catlog", false, "Simulate cat command for a log file")
 	reqPerSec := flag.Int("rps", 1, "Requests per second limit for catlog mode")
@@ -87,6 +88,7 @@ func main() {
 	agentLogFile := flag.String("log-file", "", "Path to the agent's log file (Overrides config file)")
 	isTitleEnabled := flag.Bool("collect-title", false, "Enable collection of page titles based on URL")
 	titleDomain := flag.String("title-domain", "", "Override default domain to fetch title from")
+	batchMode := flag.Bool("batch", false, "Enable batch mode for sending logs")
 
 	// Parse the flags first
 	flag.Parse()
@@ -133,6 +135,10 @@ func main() {
 
 	if *titleDomain != "" {
 		config.Title.Domain = *titleDomain
+	}
+
+	if *batchMode {
+		config.Batch.Mode = *batchMode
 	}
 
 	// Override config with flag values

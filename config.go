@@ -51,6 +51,9 @@ type Config struct {
 		Domain  string `mapstructure:"title_domain"`
 		Cache   string `mapstructure:"cache_file"`
 	}
+	Batch struct {
+		Mode bool `mapstructure:"batch"`
+	}
 }
 
 func loadConfig(configPath string) (*Config, error) {

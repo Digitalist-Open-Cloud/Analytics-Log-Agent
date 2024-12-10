@@ -43,6 +43,7 @@ The file `config.toml.example` kan be used as a start for your `config.tml` file
 | `--log-file`      | `string` | `""`                            | Path to the agent's log file. Overrides the value set in the config file.                         |
 | `--collect-title` | `bool`   | `false`                         | Collect titles from log URLs                                                                      |
 | `--title-domain`  | `string` | `""`                            | Override domain in log or csv with this domain for getting title (this is not implemented yet)    |
+| `--batch`  | `string` | `""`                            |  Run in batch mode, send 200 log lines per request    |
 
 Each flag can be used to override corresponding values in the `config.toml` file, allowing you to customize the agent's behavior via command-line arguments.
 
